@@ -5,7 +5,7 @@ dir=/home/notneo/BillyGates
 
 # check permissions
 if [[ "$UID" != "0" ]]; then
-	echo "script: Root permissions are needed to run $name virtual machine" 2>/dev/null
+	echo "$0: Root permissions are needed to run $name virtual machine" 2>/dev/null
 	exit 1
 fi
 
@@ -14,25 +14,25 @@ if [[ "$1" == "stop" ]]; then
 	# stop virtual RAID disk
 	mdadm --stop --scan
 	losetup --detach-all
-    echo "script: The virtual RAID was shutdown" &
+    echo "$0: The virtual RAID was shutdown" &
 	exit 0
 else
 	# setup virtual RAID disk
-	losetup -f $PWD/efi1
-	losetup -f $PWD/efi2
+	losetup -f `dirname "$0"`/efi1
+	losetup -f `dirname "$0"`/efi2
 	mdadm --build --verbose /dev/md0 --chunk=512 --level=linear --raid-devices=3 /dev/loop0 /dev/nvme1n1p2 /dev/loop1
 	sleep 1
 	chown $USER /dev/md0
 
     # check if a passthrough vm is running
     if ps -ef | grep qemu-system-x86_64 | grep -q multifunction=on; then
-        echo "script: A GPU passthrough virtual machine is already running!" &
+        echo "$0: A GPU passthrough virtual machine is already running!" &
         exit 1
     else
 
-    cp /usr/share/OVMF/x64/OVMF_VARS.fd /tmp/vars.fd
+    cp /usr/share/edk2-ovmf/x64/OVMF_VARS.fd /tmp/vars.fd
 
-    echo "script: Starting $name virtual machine"
+    echo "$0: Starting $name virtual machine"
 
     local -a qemu_params=(
         -name $name,process=$name \
@@ -42,7 +42,7 @@ else
         -smp sockets=1,cores=2,threads=2 \
         -cpu host,kvm=off,hv_time,hv_relaxed,hv_vapic,hv_spinlocks=0x1fff \
         -nodefaults \
-        -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/x64/OVMF_CODE.fd \
+        -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2-ovmf/x64/OVMF_CODE.fd \
         -drive if=pflash,format=raw,file=/tmp/vars.fd \
     )
 
@@ -109,7 +109,7 @@ else
         "${qemu_network[@]}" \
         "${qemu_usb_host[@]}"
 
-    echo "script: $name virtual machine was shutdown"
+    echo "$0: $name virtual machine was shutdown"
 
     exit 0
     fi
